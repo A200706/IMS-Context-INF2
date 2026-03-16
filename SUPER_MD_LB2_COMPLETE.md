@@ -1,115 +1,322 @@
-# SUPER-MD: MODUL 117 (LB2) - SYSTEM INFRASTRUCTURE
+# MODUL 114 — SUPER MD: KAPITEL 7–11 (LB1 Teil 2 / LB2 Prüfungsstoff)
 
-## 0. QUICK ROUTER & RULES
-**ROLE:** You are an Exam Architect. No fluff. No introductions.
-**SOURCE:** Use ONLY this document.
-**OUTPUT:** Strict exam style. Bullet points. Tables.
-
-| KEYWORD | GOAL | SECTION TO USE |
-| :--- | :--- | :--- |
-| **"IP" / "Adresskonzept"** | Create IP Table, Subnets, Gateway | [2.0 LOGISCHES NETZ] |
-| **"Name" / "DNS"** | Hostname rules, FQDN | [2.2 NAMENSKONZEPT] |
-| **"Berechtigung" / "NTFS"** | NTFS vs Share Matrix | [3.0 STORAGE & PERMS] |
-| **"Laufwerk" / "Mapping"** | Drive Mapping (S:, P:) | [3.3 MAPPING] |
-| **"Diagramm" / "Netzplan"** | Drawing Logic, Labels | [4.0 DIAGRAMS] |
-| **"Konzept" / "Vorlage"** | Full Concept Tables | [5.0 TEMPLATES] |
+> Codierungs-, Kompressions- und Verschlüsselungsverfahren einsetzen
+> Quelle: Smartlearn Modul 114 Onlinekurs — Daniel Schär
 
 ---
 
-## 2.0 LOGISCHES NETZ (IP & DNS)
+## K07 — KOMPRESSION (verlustfrei)
 
-### 2.1 IP-Adressierung (Regeln)
-* **Private Ranges (RFC 1918):**
-    * Class A: `10.0.0.0/8`
-    * Class B: `172.16.0.0/12`
-    * Class C: `192.168.0.0/16` (**Standard für LB2**)
-* **Gerätetypen & Adressbereiche:**
-    * **Netzwerkkomponenten (Router/Switch):** Immer erste oder letzte IP (`.1` oder `.254`). *Standard Gateway = .1*
-    * **Server (Statisch):** Niedriger Bereich (z.B. `.10 - .29`).
-    * **Drucker (Statisch):** Mittlerer Bereich (z.B. `.30 - .49`).
-    * **Clients (DHCP):** Hoher Bereich (z.B. `.100 - .199`).
-    * **Reservations:** DHCP-Reservierung via MAC-Adresse für Geräte, die eine fixe IP brauchen, aber via DHCP verwaltet werden.
+### Begriffe
+- **Kompression**: Redundante Informationen entfernen → kürzere Darstellung
+- **Dekompression**: Umkehrung der Kompression
+- **Verlustfrei**: Originaldaten können exakt wiederhergestellt werden
+- **Verlustbehaftet**: Teil der Information geht verloren (nur "unwichtige" Daten)
 
-### 2.2 Namenskonzept (DNS)
-* **Syntax:** Muss logisch und konsistent sein. Formel: `[Ort]-[Typ]-[Nr]` oder `[Abteilung]-[Gerät]-[Nr]`
-* **Beispiele:**
-    * `SRV-BE-01` (Server, Bern, Nr. 01)
-    * `CL-HR-02` (Client, HR, Nr. 02)
-    * `PR-Sales-01` (Printer, Sales, Nr. 01)
-* **Wichtig:** Keine Namen wie "Müller-PC" (Mitarbeiter wechseln).
+### Kompressionsfaktor & Kompressionsrate
+- **Kompressionsfaktor** = Dateigrösse_unkomprimiert / Dateigrösse_komprimiert
+- **Kompressionsrate** = Dateigrösse_komprimiert / Dateigrösse_unkomprimiert = 1 / Kompressionsfaktor
 
-### 2.3 Protokolle
-* **DHCP (DORA):** Discover, Offer, Request, Acknowledge. Verteilt: IP, Subnetzmaske, Gateway, DNS-Server.
-* **DNS:** Namensauflösung (`SRV01` -> `192.168.1.10`).
-* **ARP:** Adressauflösung (IP-Adresse -> MAC-Adresse).
+Beispiel: Unkomprimiert 400 Bit, komprimiert 73 Bit → Faktor = 400/73 ≈ 5.5 → Rate ≈ 18%
 
----
+### Ansätze verlustfreie Kompression
 
-## 3.0 STORAGE & PERMISSIONS (BERECHTIGUNGEN)
+| Verfahren | Prinzip | Einsatz |
+|---|---|---|
+| Lauflängencodierung | Zählt aufeinanderfolgende gleiche Zeichen (z.B. 0000 → 4×0) | Nur Spezialfälle |
+| Wörterbuchverfahren | Häufige Muster → kurzer Code | Gleichartige Muster |
+| Huffman-Code | Optimierter Code pro Datei, häufige Zeichen = kurz | ZIP, JPEG (Teilschritt) |
 
-### 3.1 Die "Goldene Regel" (Freigabe vs. NTFS)
-* **Freigabeberechtigungen (Share):** Tor zum Haus. **IMMER auf "Jeder" -> "Ändern" (Change) setzen.** Hier wird nicht gefiltert!
-* **NTFS-Berechtigungen (Sicherheit):** Zimmerschlüssel. **HIER wird gefiltert.** Gruppen (z.B. `G_HR_RW`) werden hier auf den Ordner berechtigt.
-* **Resultat:** Die *restriktivste* Berechtigung gilt (Offene Freigabe + Strenges NTFS = Streng).
+### Huffman-Code — Algorithmus (PRÜFUNGSRELEVANT)
+1. Jedes Zeichen aufschreiben
+2. Häufigkeit über jedes Zeichen schreiben
+3. Die beiden niedrigsten (freien) Häufigkeiten zu einem Summenknoten verbinden
+4. Schritt 3 wiederholen bis Stammknoten (Totalsumme) erreicht
+5. An jeder Verzweigung: links = 0, rechts = 1 (oder umgekehrt, konsistent bleiben)
+6. Binärcode jedes Zeichens vom Stammknoten ablesen
 
-### 3.2 Berechtigungsstufen (Windows Terms)
-1.  **Vollzugriff (Full Control):** Lesen, Schreiben, Löschen, **Rechte ändern**, Besitz übernehmen. (Nur für Admins).
-2.  **Ändern (Modify):** Lesen, Schreiben, Löschen, Ausführen. (Standard für "Schreibrechte").
-3.  **Lesen & Ausführen (Read & Execute):** Dateien öffnen, Programme starten. Keine Änderungen. (Standard für "Leserechte").
-4.  **Verweigern (Deny):** Überschreibt alles. Nur im Notfall nutzen.
+Wichtig: Code-Tabelle muss der komprimierten Datei beigefügt werden (für Dekompression).
 
-### 3.3 Laufwerksmapping (Drive Mapping)
-* **H:** (Home) -> `\\Server\Home\%Username%` (Privat)
-* **P:** (Public/Austausch) -> `\\Server\Public` (Alle Lesen/Schreiben)
-* **S:** (Share/Abteilung) -> `\\Server\Data` (Abteilungsordner sichtbar via ABE - Access Based Enumeration).
-* **Umsetzung:** Via GPO (Group Policy) oder Login Script (`net use S: \\Server\Data`).
+Beispiel "IM WESTEN NICHTS NEUES":
+- Unkomprimiert (Unicode 16 Bit): 21 Zeichen × 16 = 336 Bit
+- Huffman-codiert: 73 Bit
+- Kompressionsfaktor ≈ 336/73 ≈ 4.6 → Rate ≈ 22%
 
 ---
 
-## 4.0 DIAGRAMME & HARDWARE
+## K08 — REDUKTION (verlustbehaftet)
 
-### 4.1 Topologie (Physisch & Logisch)
-* **Ablauf:** Internet -> Modem/Router -> Firewall -> Switch -> Patchfeld -> Dose -> Client.
-* **Verkabelung:**
-    * Horizontale Verkabelung (Etagenverteiler zu Dose): Twisted Pair (Kupfer).
-    * Vertikale Verkabelung (Gebäude zu Gebäude): Glasfaser (LWL).
+### Begriff
+- **Reduktion** = verlustbehaftete Kompression
+- Aufnahmegeräte sind empfindlicher als menschliche Sinne → Daten entfernen die der Mensch nicht wahrnimmt
+- Qualität wird reduziert soweit die Anwendung es erlaubt
+- Danach oft noch verlustfreie Kompression (z.B. Huffman)
 
-### 4.2 Beschriftung im Netzplan (Pflicht)
-Im Diagramm MÜSSEN stehen:
-1.  **Hostname** (`SRV-01`)
-2.  **IP-Adresse** (`192.168.1.10`)
-3.  **Schnittstelle** (bei Router: `eth0` / `LAN1`)
-4.  **Netzadresse** (z.B. `192.168.1.0/24`)
+### Audio-Dateien
+
+#### AD-Wandlung (Aufnahme)
+- Analoges Signal (Schallwelle) wird in regelmässigen Abständen abgetastet
+- Amplitudenwert wird binär gespeichert
+
+#### Sampling-Rate
+- Wie oft das Signal abgetastet wird (Abtastungen pro Sekunde)
+- Höhere Rate = mehr Messpunkte = genauer = grössere Datei
+- CD-Qualität: **44.1 kHz** (44'100 Abtastungen/s)
+
+#### Sampling-Tiefe
+- Wie fein der Messwert auf der Y-Achse angegeben wird
+- 8 Bit = 256 Stufen, 16 Bit = 65'536 Stufen
+- Verdoppelung der Tiefe = Verdoppelung der Dateigrösse
+- CD-Qualität: **16 Bit**
+
+#### CD-Qualität komplett
+- 2 Kanäle (Stereo) × 44'100 Hz × 16 Bit = 1'411'200 Bit/s ≈ 176 KB/s
+- Format: **.wav** (unkomprimiert)
+
+#### Psychoakustische Reduktion (z.B. MP3)
+Nutzt Schwächen des menschlichen Gehörs:
+
+| Effekt | Beschreibung | Einsparung |
+|---|---|---|
+| **Hörschwelle** | Töne unter bestimmter Lautstärke (abhängig von Frequenz) sind unhörbar | Alles unter der Hörschwelle weglassen |
+| **Maskierung** | Lauter Ton verdeckt leisere Töne in Nachbarfrequenzen | Verdeckte Frequenzen weglassen |
+| **Nachmaskierung** | Nach lautem Ton können leisere Töne kurzzeitig nicht gehört werden | Nachfolgende leise Töne weglassen |
+
+### Bild-Dateien
+
+#### Aufnahme
+- Bild wird in Pixel aufgeteilt
+- Pro Pixel: Farbinformation gespeichert
+- Dateigrösse = Anzahl Pixel × Farbtiefe
+
+#### Farbtiefe
+
+| Typ | Bit/Pixel | Farben | Format-Beispiel |
+|---|---|---|---|
+| Schwarzweiss | 1 | 2 (schwarz/weiss) | - |
+| Graustufen | 4 | 16 Schattierungen | - |
+| GIF | 8 | 256 | .gif |
+| Real Color | 15 | 32'768 | - |
+| True Color | 24 | 16'777'216 | .bmp |
+
+- True Color: je **8 Bit für R, G, B** (Rot, Grün, Blau)
+- Real Color: je **5 Bit für R, G, B**
+
+#### JPEG-Reduktion
+- Pixel werden zu grösseren Einheiten zusammengefasst
+- Vor allem dort wo wenig Kontraste sind
+- Stärke der Kompression einstellbar (Qualitätsstufe)
+
+### Berechnung Dateigrösse (Audio)
+Formel: Kanäle × Sampling-Rate × Sampling-Tiefe × Dauer = Dateigrösse in Bit
+
+Beispiel 10s Stereo CD: 2 × 44'100 × 16 × 10 = 14'112'000 Bit = 1'764'000 Byte ≈ 1.7 MB
+
+### Berechnung Dateigrösse (Bild)
+Formel: Breite × Höhe × Farbtiefe = Dateigrösse in Bit
+
+Beispiel 1920×1080 True Color: 1920 × 1080 × 24 = 49'766'400 Bit ≈ 5.9 MB
 
 ---
 
-## 5.0 TEMPLATES (EXACT EXAM HEADERS)
+## K09 — VEKTORGRAFIKEN
 
-### TEMPLATE A: IP-ADRESSKONZEPT (Tabelle)
-*Benutze exakt diese Spaltenüberschriften.*
+### Bitmap vs. Vektor
 
-| Gerätetyp | Hostname | Schnittstelle | IP-Adresse | Subnetzmaske | Gateway | DNS | Bemerkung |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Router | R-01 | LAN | 192.168.1.1 | 255.255.255.0 | - | - | GW für LAN |
-| Server | S-DC-01 | NIC1 | 192.168.1.10 | 255.255.255.0 | 192.168.1.1 | 127.0.0.1 | DC/DNS |
-| Client | C-HR-01 | ETH | DHCP | DHCP | DHCP | DHCP | Range .100+ |
+| Eigenschaft | Bitmap (Raster) | Vektor (SVG) |
+|---|---|---|
+| Speicherung | Jedes Pixel einzeln | Zeichenanleitung (Koordinaten + Befehle) |
+| Skalierung | Qualitätsverlust beim Vergrössern | Kein Qualitätsverlust (wird neu berechnet) |
+| Dateigrösse | Gross (jedes Pixel) | Klein (nur Befehle) |
+| Geeignet für | Fotos, komplexe Bilder | Zeichnungen, Pläne, Logos |
+| Nachteil | Pixelig bei Zoom | Nicht für komplexe Bilder mit vielen Farben |
 
-### TEMPLATE B: BERECHTIGUNGSMATRIX (Grid)
-*X = Zugriff erlaubt. Level in Legende definieren.*
+### SVG (Scaleable Vector Format)
+- HTML-ähnlicher Code
+- Koordinatensystem: Ursprung **oben links**
 
-| Ressource (Ordner) | Freigabename | User/Gruppe: **Admins** | User/Gruppe: **HR** | User/Gruppe: **Sales** | NTFS Level (HR) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| D:\Data\Public | Public$ | Vollzugriff | Ändern | Ändern | Ändern |
-| D:\Data\HR | HR$ | Vollzugriff | Ändern | - | Ändern |
-| D:\Data\Sales | Sales$ | Vollzugriff | - | Ändern | - |
+### SVG-Grundstruktur
+```
+<svg width="200" height="200">
+  <circle cx="100" cy="100" rx="50" ry="50" fill="red" stroke="black"/>
+  <path d="M 10 10 L 100 100" fill="none" stroke="blue"/>
+</svg>
+```
 
-*Wichtig: Freigabeberechtigung ist immer "Jeder: Ändern". Die Spalte "NTFS Level" definiert den echten Schutz.*
+### SVG-Tags
+- `<svg>` / `</svg>` — Zeichnungsfeld mit Höhe/Breite definieren
+- `<circle>` — Ellipse: cx, cy (Mittelpunkt), rx, ry (Radien X/Y)
+- `<path>` — Linienstrang
+- `fill` — Füllfarbe (oder "none")
+- `stroke` — Stiftfarbe
 
-### TEMPLATE C: REALISIERUNG CHECKLIST (Praxis Part)
-1.  **Verkabelung:** PC mit Switch/Dose verbinden. Link-LED prüfen.
-2.  **IP-Konfig:** Statische IP setzen (Adapteroptionen) oder `ipconfig /all` prüfen bei DHCP.
-3.  **Ping-Test:** `ping [Gateway]` -> `ping [Server IP]` -> `ping google.ch`.
-4.  **Freigaben:**
-    * Server: Ordner erstellen -> Eigenschaften -> Freigabe -> Erweiterte Freigabe -> Berechtigungen -> Jeder: Ändern.
-    * Server: Reiter "Sicherheit" -> Bearbeiten -> Gruppe hinzufügen -> "Ändern" oder "Lesen" wählen.
-5.  **Mapping:** Explorer -> Netzlaufwerk verbinden -> `S:` -> `\\Server\Freigabe`.
+### Path-Befehle (PRÜFUNGSRELEVANT)
+
+| Befehl | Bedeutung |
+|---|---|
+| M | moveto (Cursor bewegen, ohne zu zeichnen) |
+| L | lineto (gerade Linie zum Punkt) |
+| C | curveto |
+| S | smooth curveto |
+| Q | quadratic Bezier curve |
+| A | elliptical arc |
+| Z | closepath (Pfad schliessen) |
+
+### Gross- vs. Kleinschreibung
+- **GROSS** (M, L, C...) = **absolute** Koordinaten (bezogen auf Ursprung 0,0)
+- **klein** (m, l, c...) = **relative** Koordinaten (bezogen auf aktuelle Cursor-Position)
+
+### Tools
+- w3schools.com — Online-Editor für SVG
+- SCRIBUS — Open-Source SVG-Software
+- Visual Studio mit SVG Add-In
+
+---
+
+## K10 — VERSCHLÜSSELUNG: Geschichte & Grundsätzliches
+
+### Schutzziele CIA (PRÜFUNGSRELEVANT)
+
+| Buchstabe | Ziel | Deutsch | Erreicht durch |
+|---|---|---|---|
+| **C** | Confidentiality | Vertraulichkeit | Verschlüsselung |
+| **I** | Integrity | Integrität | Hash-Funktion |
+| **A** | Authenticity | Authentizität | Digitale Signatur |
+
+Hinweis: Bei allgemeinem Informationsschutz steht A oft für "Availability" (Verfügbarkeit).
+
+### Steganographie
+- **Definition**: Kunst des Versteckens von Informationen in einem Trägermedium (Container)
+- Der Empfänger braucht nur die Anleitung zum Auffinden
+- Dritte schöpfen keinen Verdacht
+
+Beispiele:
+- Text in Text
+- Bilder in Bildern
+- First Letter Messages
+- Bitströme in Dateien
+- Skytalen (Stab mit Papierstreifen)
+
+### Monoalphabetische Chiffren
+- Jeder Buchstabe → genau ein Geheimzeichen (immer dasselbe)
+- Beispiele: Freimaurer-Chiffre, Tempelritter-Chiffre
+
+#### Caesar-Chiffre (PRÜFUNGSRELEVANT)
+- Buchstaben um feste Anzahl Stellen im Alphabet verschieben
+- Schlüssel = Buchstabe der Verschiebung (A=0, B=1, C=2, ...)
+- Beispiel: Schlüssel D → A wird D, B wird E, ...
+- Caesar-Scheibe: innerer Ring drehbar
+
+#### Mary Stuart Chiffre
+- Monoalphabetisch + Zusätze:
+  - Zeichen ohne Bedeutung (Verwirrung)
+  - "Dowbleth" = nächster Buchstabe doppelt
+  - Eigene Zeichen für häufige Wörter
+- Wurde trotzdem geknackt
+
+### Kryptoanalyse monoalphabetischer Chiffren
+- **Buchstabenhäufigkeit**: Jede Sprache hat eigenen "Fingerabdruck"
+- Bei längeren Texten reicht Häufigkeitsanalyse zum Entschlüsseln
+- Verfeinert durch: häufigste Nachbarn der Buchstaben
+
+### Symmetrische vs. Asymmetrische Verschlüsselung
+
+| Eigenschaft | Symmetrisch | Asymmetrisch |
+|---|---|---|
+| Schlüssel | Gleicher Schlüssel für Sender & Empfänger | Public Key + Private Key |
+| Problem | Schlüsselaustausch unsicher | - |
+| Vorteil | Schnell, wenig Rechenleistung | Schlüsselaustausch sicher |
+| Nachteil | Schlüssel muss übermittelt werden | Langsam, viel Rechenleistung |
+| Beispiel | IPSec | RSA, IKE |
+
+### Hybride Verfahren (PRÜFUNGSRELEVANT)
+Kombination beider Vorteile:
+1. **Verbindungsaufbau**: Asymmetrisch (z.B. IKE) → sicherer Schlüsselaustausch
+2. **Datenübertragung**: Symmetrisch (z.B. IPSec) → schnelle Verschlüsselung
+
+Praxisbeispiel: **Site-to-Site VPN**
+- IKE (asymmetrisch, langsam) tauscht den symmetrischen Schlüssel aus
+- IPSec (symmetrisch, schnell) verschlüsselt die IP-Pakete
+
+---
+
+## K11 — VERSCHLÜSSELUNG: Moderne Verfahren
+
+### RSA-Verfahren (Vertraulichkeit) (PRÜFUNGSRELEVANT)
+- **RSA** = Rivest–Shamir–Adleman
+- Asymmetrisches Verfahren
+- Schl üsselpaar: Public Key (öffentlich) + Private Key (geheim)
+- Public Key → verschlüsseln / Signaturen prüfen
+- Private Key → entschlüsseln / signieren
+- Private Key kann nicht aus Public Key berechnet werden (mit realistischem Aufwand)
+
+### XOR-Verschlüsselung (PRÜFUNGSRELEVANT)
+Anwendung eines binären Schlüssels auf eine binäre Datei:
+
+```
+Klartext  XOR  Schlüssel  =  Chiffrat
+Chiffrat  XOR  Schlüssel  =  Klartext
+```
+
+XOR-Wahrheitstabelle:
+| A | B | A XOR B |
+|---|---|---|
+| 0 | 0 | 0 |
+| 0 | 1 | 1 |
+| 1 | 0 | 1 |
+| 1 | 1 | 0 |
+
+Beispiel:
+- Klartext:  1 0 1 1 0 1
+- Schlüssel: 1 1 0 1 1 0
+- Chiffrat:  0 1 1 0 1 1
+- Chiffrat XOR Schlüssel: 1 0 1 1 0 1 = Klartext ✓
+
+### Hash-Funktionen (Integrität) (PRÜFUNGSRELEVANT)
+- Mathematische Funktion → generiert "Fingerabdruck" einer Datei
+- Kleinste Änderung → komplett anderer Hash-Wert
+- Grosse Eingabemenge → kleinere Zielmenge (feste Länge)
+- Nicht injektiv (verschiedene Eingaben können gleichen Hash haben, aber extrem unwahrscheinlich)
+- Einsatz: Prüfen ob Datei verändert wurde
+
+### Digitale Signatur (Authentizität) (PRÜFUNGSRELEVANT)
+Kombination aus Hash-Funktion + asymmetrischer Verschlüsselung:
+
+**Signieren (Sender):**
+1. Hash der Nachricht berechnen
+2. Hash mit eigenem **Private Key** verschlüsseln → das ist die Signatur
+3. Nachricht + Signatur senden
+
+**Verifizieren (Empfänger):**
+1. Hash der empfangenen Nachricht berechnen
+2. Signatur mit **Public Key** des Senders entschlüsseln → ergibt Original-Hash
+3. Beide Hashes vergleichen → stimmen überein = authentisch + integer
+
+---
+
+## PRÜFUNGSHINWEISE (LB1 Teil 2)
+
+- **Stoff**: Kapitel 06–11
+- **Dauer**: 60 Minuten
+- **Hilfsmittel**: Spicker (2 Seiten A4) + Taschenrechner erlaubt
+- **LB2**: Gruppenarbeit (Vortrag/PDF), 20% der Modulnote — separates Projekt
+
+### Typische Rechenaufgaben
+1. Kompressionsfaktor / Kompressionsrate berechnen
+2. Huffman-Baum erstellen und Bitstrom codieren
+3. Audio-Dateigrösse berechnen (Kanäle × Rate × Tiefe × Dauer)
+4. Bild-Dateigrösse berechnen (Breite × Höhe × Farbtiefe)
+5. Caesar-Chiffre ver-/entschlüsseln
+6. XOR-Verschlüsselung durchführen
+7. RSA-Beispiel (vereinfacht)
+8. SVG-Code lesen/schreiben
+
+### Typische Erklärungsaufgaben
+1. Verlustfrei vs. verlustbehaftet erklären
+2. CIA-Schutzziele erklären
+3. Symmetrisch vs. asymmetrisch vs. hybrid erklären
+4. Psychoakustische Effekte beschreiben
+5. Bitmap vs. Vektor vergleichen
+6. Steganographie erklären
+7. Hash-Funktion Zweck erklären
+8. Digitale Signatur Ablauf beschreiben
