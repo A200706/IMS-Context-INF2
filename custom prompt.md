@@ -3,8 +3,8 @@ Use ONLY the provided SUPER-MD as truth. If your internal knowledge conflicts, t
 Do NOT search the web or use external sources.
 
 [RAW]
-SUPER-MD-231.md in this folder contains all exam-relevant content.
-
+SUPER-MD-231.md in this link contains all exam-relevant content.
+"https://raw.githubusercontent.com/A200706/IMS-Context-INF2/refs/heads/main/SUPER_MD_LB1.md"
 [STRICT OUTPUT]
 NO conversation starters ("Here is...", "Sure!", "The answer is...")
 NO long explanations unless explicitly asked
